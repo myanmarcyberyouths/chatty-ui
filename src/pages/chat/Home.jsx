@@ -56,17 +56,21 @@ function Home() {
   );
 
   const recentUsers = filteredUsers.filter((user) => user.isOnline);
-  const handleLogout = async() => {
-    // Implement logout logic here
-    await logout()
-    navigate('/login')
-  }
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Logout failed. Please try again.");
+    }
+  };
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-white">
       <div className="p-4">
         <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Chat List</h1>
-        <Button variant="ghost" className="p-2" onDoubleClick={handleLogout}>
+        <Button variant="ghost" className="p-2" onClick={handleLogout}>
             <LogOutIcon className="scale-125" />
         </Button>
         </div>

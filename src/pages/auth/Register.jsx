@@ -53,7 +53,7 @@ export default function Register() {
     // const password = e.password
 
     try {
-      await register(e.name, e.phone, e.password)
+      await register(e.name, e.email, e.password)
       navigate('/chat')
     } catch (error) {
       console.error(error)
