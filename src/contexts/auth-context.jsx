@@ -2,20 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 
-// interface User {
-//   id: string
-//   name: string
-//   phone: string
-//   role: 'admin' | 'student'
-// }
-
-// interface AuthContextType {
-//   user: User | null
-//   login: (phone: string, password: string) => Promise<void>
-//   register: (name: string, phone: string, password: string) => Promise<void>
-//   logout: () => void
-//   isLoading: boolean
-// }
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1/auth';
 
 const AuthContext = createContext(undefined)
 
@@ -26,35 +13,75 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Check for stored session
     const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-    setIsLoading(false)
-  }, [])
+    const storedToken = localStorage.getItem('token');
 
-  const register = async (name, phone, password) => {
-    // In a real app, this would make an API call
-    const newUser = {
-      id: Math.random().toString(36).slice(2),
-      name,
-      phone,
-      role: 'student'
+    if (storedUser && storedToken) {
+      setUser(JSON.parse(storedUser));
     }
-    localStorage.setItem('user', JSON.stringify(newUser))
-    setUser(newUser)
+    setIsLoading(false);
+  }, []);
+
+  const register = async (name, email, password) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Registration failed');
+      }
+
+      const data = await response.json();
+      const { user, token } = data;
+
+      // Store user and token in localStorage
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+
+      // Update state
+      setUser(user);
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error; // Re-throw the error to handle it in the component
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  const login = async (phone, password) => {
-    // In a real app, this would verify credentials with an API
-    const mockUser = {
-      id: '123',
-      name: 'Test User',
-      phone,
-      role: 'student' 
+  const login = async (name, password) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      const { user, token } = data;
+
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+
+      setUser(user);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-    localStorage.setItem('user', JSON.stringify(mockUser))
-    setUser(mockUser)
-  }
+  };
 
   const logout = () => {
     localStorage.removeItem('user')
