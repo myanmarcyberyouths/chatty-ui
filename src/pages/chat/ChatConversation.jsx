@@ -22,6 +22,7 @@ export default function ChatConversation() {
   const [chat, setChat] = useState('');
   const [chats, setChats] = useState([]);
   const [recipient, setRecipient] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
   const scrollAreaRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -61,7 +62,7 @@ export default function ChatConversation() {
   }, [chats]);
 
   useEffect(() => {
-    if (socket && chatUser) {
+    if (socket && chatUser && recipient._id) {
       socket.emit('load messages', {
         sender_id: chatUser.id,
         recipient_id: recipient._id,
@@ -75,7 +76,7 @@ export default function ChatConversation() {
         socket.off('chat history');
       };
     }
-  }, [socket, chatUser]);
+  }, [socket, chatUser, recipient._id]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -97,6 +98,7 @@ export default function ChatConversation() {
   };
 
   const sendImage = async (file) => {
+    setIsUploading(true);
     const formData = new FormData();
     formData.append('image', file);
     formData.append('sender', chatUser.id);
@@ -113,6 +115,9 @@ export default function ChatConversation() {
       setChats((prevChats) => [...prevChats, response.data]);
     } catch (error) {
       console.error('Error sending image:', error);
+      alert('Failed to send image. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -133,7 +138,7 @@ export default function ChatConversation() {
             <Avatar className="h-12 w-12">
               <AvatarFallback></AvatarFallback>
             </Avatar>
-            {recipient.isActive && (
+            {recipient.isOnline && (
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
             )}
           </div>
@@ -147,36 +152,45 @@ export default function ChatConversation() {
       {/* Messages */}
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="flex flex-col p-4 min-h-full">
-          {chats.map((message) => (
-            <div
-              key={message._id}
-              className={`flex ${message.sender === authUser._id ? 'justify-end' : 'justify-start'
-                } mb-4`}
-            >
+        {chats.map((message, index) => {
+            // Check if the content ends with an image file extension
+            const isImage = 
+              message.content.endsWith('.jpeg') ||
+              message.content.endsWith('.jpg') ||
+              message.content.endsWith('.png') ||
+              message.content.endsWith('.gif');
+
+            return (
               <div
-                className={`max-w-[70%] rounded-2xl px-4 py-2 ${message.sender === authUser._id
-                    ? 'bg-black text-white'
-                    : 'bg-gray-100'
-                  }`}
+                key={message._id || index}
+                className={`flex ${message.sender === authUser._id ? 'justify-end' : 'justify-start'
+                  } mb-4`}
               >
-                {message.type === 'image' ? (
-                  <img
-                    src={`http://localhost:3000/${message.content}`}
-                    alt="Sent image"
-                    className="max-w-full h-auto rounded-lg"
-                  />
-                ) : (
-                  <p>{message.content}</p>
-                )}
-                <p className="text-xs mt-1 opacity-70">
-                  {new Date(message.timestamp).toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  })}
-                </p>
+                <div
+                  className={`max-w-[70%] rounded-2xl px-4 py-2 ${message.sender === authUser._id
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100'
+                    }`}
+                >
+                  {isImage ? (
+                    <img
+                      src={`http://localhost:3000/${message.content}`}
+                      alt="Sent image"
+                      className="max-w-full h-auto rounded-lg"
+                    />
+                  ) : (
+                    <p>{message.content}</p>
+                  )}
+                  <p className="text-xs mt-1 opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString([], {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
@@ -198,6 +212,7 @@ export default function ChatConversation() {
               size="icon"
               className="rounded-full"
               onClick={() => fileInputRef.current.click()}
+              disabled={isUploading}
             >
               <Camera className="h-6 w-6" />
             </Button>
