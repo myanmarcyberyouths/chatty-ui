@@ -62,6 +62,10 @@ export default function ChatConversation() {
   }, [chats]);
 
   useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chats]);
+
+  useEffect(() => {
     if (socket && chatUser && recipient._id) {
       socket.emit('load messages', {
         sender_id: chatUser.id,
@@ -136,7 +140,7 @@ export default function ChatConversation() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Avatar className="h-12 w-12">
-              <AvatarFallback></AvatarFallback>
+              <AvatarFallback>{recipient.name}</AvatarFallback>
             </Avatar>
             {recipient.isOnline && (
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
