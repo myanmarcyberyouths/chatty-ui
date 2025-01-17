@@ -68,26 +68,6 @@ export default function Register() {
         <h1 className='font-bold text-5xl'>Chat App</h1>
         <h3 className='font-bold text-xl items-baseline relative top-2'>Register</h3>
       </div>
-        {/* <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" name="name" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" name="phone" type="tel" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register'}
-          </Button>
-          <p className="text-center">
-            Already have an account? <Link to="/login" className="text-primary underline">Login</Link>
-          </p>
-        </form> */}
         <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField

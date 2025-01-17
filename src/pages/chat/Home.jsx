@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,55 +7,59 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router";
 import { LogOutIcon } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-// interface ChatUser {
-//   id: string
-//   name: string
-//   role: string
-//   lastSeen: Date
-//   isOnline: boolean
-// }
+import axios from "axios";
 
 const mockUsers = [
-  { id: "1", name: "Saw", role: "Admin", lastSeen: new Date(), isOnline: true },
+  { id: "1", name: "Saw", role: "Admin", lastSeen: new Date(), isActive: true },
   {
     id: "2",
     name: "Andrew",
     role: "Student",
     lastSeen: new Date(),
-    isOnline: true,
+    isActive: true,
   },
   {
     id: "3",
     name: "Lin",
     role: "Student",
     lastSeen: new Date(),
-    isOnline: false,
+    isActive: false,
   },
   {
     id: "4",
     name: "Aung",
     role: "Admin",
     lastSeen: new Date(),
-    isOnline: false,
+    isActive: false,
   },
   {
     id: "5",
     name: "Khant",
     role: "Student",
     lastSeen: new Date(),
-    isOnline: true,
+    isActive: true,
   },
 ];
 
 function Home() {
-    const navigate = useNavigate()
+  const [users , setUsers] = useState([])
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("");
-    const {logout} = useAuth()
+  const {logout} = useAuth()
   const filteredUsers = mockUsers.filter((user) =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const recentUsers = filteredUsers.filter((user) => user.isOnline);
+  useEffect(() => {
+    axios.get('http://localhost:3000/api/v1/active-users')
+      .then((res) => {
+        setUsers(res.data)
+      })
+      .catch((error) => console.log(error))
+  }, [])
+
+  const recentUsers = filteredUsers.filter((user) => user.isActive);
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -93,11 +97,11 @@ function Home() {
           ))}
 
           <h2 className="text-xl font-bold text-blue-600 mt-6 mb-4">All</h2>
-          {filteredUsers.map((user) => (
+          {users.map((user) => (
             <UserItem 
-                key={user.id} 
+                key={user._id} 
                 user={user} 
-                onClick={() => navigate(`/chat/${user.id}`)} 
+                onClick={() => navigate(`/chat/${user._id}`)} 
             />
 
           ))}
@@ -112,15 +116,15 @@ function UserItem({ user, onClick }) {
     <div onClick={onClick} className="flex items-center gap-4 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
       <div className="relative">
         <Avatar>
-          <AvatarFallback>{user.name[0]}</AvatarFallback>
+          <AvatarFallback>{user.name}</AvatarFallback>
         </Avatar>
-        {user.isOnline && (
+        {user.isActive && (
           <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
         )}
       </div>
       <div className="flex-1">
         <h3 className="font-semibold">{user.name}</h3>
-        <p className="text-sm text-muted-foreground">{user.role}</p>
+        <p className="text-sm text-muted-foreground">User</p>
       </div>
       <span className="text-sm text-muted-foreground">8:00 pm</span>
     </div>

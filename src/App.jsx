@@ -9,10 +9,10 @@ import Register from './pages/auth/Register'
 import Home from './pages/chat/Home'
 import ChatConversation from './pages/chat/ChatConversation'
 import { useAuth, AuthProvider } from './contexts/auth-context'
+
 const isAuthenticated = () => {
   return localStorage.getItem('token') !== null
 }
-
 
 function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth()
@@ -47,7 +47,7 @@ function App() {
           }
         >
           <Route index element={<Home />} />
-          <Route path=':userId' element={<ChatConversation />} />
+          <Route path=':recipientId' element={<ChatConversation />} />
           {/* <Route path="course" element={<Course />} />
           <Route path="course/:courseId/module" element={<Module/>} />
           <Route path="course/:courseId/module/:moduleId/activity" element={<Activity />} />
