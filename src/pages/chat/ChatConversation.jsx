@@ -1,73 +1,30 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { ArrowLeft, Camera, Send, Smile } from 'lucide-react'
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import StickerIcon from '@/icons/StickerIcon'
-import SendIcon from '@/icons/SendIcon'
-import { io } from 'socket.io-client'
-import axios from 'axios'
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import { ArrowLeft, Camera, Send, Smile } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import StickerIcon from '@/icons/StickerIcon';
+import SendIcon from '@/icons/SendIcon';
+import { io } from 'socket.io-client';
+import axios from 'axios';
 
-const socket = io('http://localhost:3000')
-const mockMessages = [
-  {
-    id: '1',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'user1',
-    timestamp: new Date('2024-01-09T20:15:00'),
-  },
-  {
-    id: '2',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'current-user',
-    timestamp: new Date('2024-01-09T20:16:00'),
-  },
-  {
-    id: '3',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'current-user',
-    timestamp: new Date('2024-01-09T20:17:00'),
-  },
-  {
-    id: '4',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'user1',
-    timestamp: new Date('2024-01-09T20:18:00'),
-  },
-  {
-    id: '5',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'user1',
-    timestamp: new Date('2024-01-09T20:19:00'),
-  },
-  {
-    id: '6',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'current-user',
-    timestamp: new Date('2024-01-09T20:20:00'),
-  },
-  {
-    id: '11',
-    content: 'Potter ipsum wand elf parchment wingardium. Emporium spells not side or.',
-    senderId: 'user1',
-    timestamp: new Date('2024-01-09T20:15:00'),
-  }]
+const socket = io('http://localhost:3000');
 
 export default function ChatConversation() {
   const stickerRef = useRef(null);
-  const navigate = useNavigate()
-  const { recipientId } = useParams()
-  const [chat, setChat] = useState('')
-  const [chats, setChats] = useState([])
-  const [recipient , setRecipient] = useState({})
-  const scrollAreaRef = useRef(null)
-  const bottomRef = useRef(null)
+  const fileInputRef = useRef(null);
+  const navigate = useNavigate();
+  const { recipientId } = useParams();
+  const [chat, setChat] = useState('');
+  const [chats, setChats] = useState([]);
+  const [recipient, setRecipient] = useState({});
+  const scrollAreaRef = useRef(null);
+  const bottomRef = useRef(null);
 
-  // In a real app, fetch this from your backend
   const authUser = JSON.parse(localStorage.getItem('user'));
 
   const chatUser = {
@@ -75,19 +32,33 @@ export default function ChatConversation() {
     name: authUser.name,
     role: 'User',
     isOnline: true,
-  }
-
-  const response =  axios.get(`http://localhost:3000/api/v1/user/${recipientId}`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`, // Set the Authorization header
-    },
-  })
-  .then((res) => setRecipient(res.data))
-  .catch((error) => console.log(error));
+  };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chats])
+    if (recipientId) {
+      const fetchRecipient = async () => {
+        try {
+          const response = await axios.get(
+            `http://localhost:3000/api/v1/user/${recipientId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            }
+          );
+          setRecipient(response.data);
+        } catch (error) {
+          console.error('Error fetching recipient:', error);
+        }
+      };
+
+      fetchRecipient();
+    }
+  }, [recipientId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chats]);
 
   useEffect(() => {
     if (socket && chatUser) {
@@ -96,18 +67,18 @@ export default function ChatConversation() {
         recipient_id: recipient._id,
       });
 
-        socket.on('chat history', (messages) => {
-            setChats(messages);
-        });
+      socket.on('chat history', (messages) => {
+        setChats(messages);
+      });
 
       return () => {
         socket.off('chat history');
       };
     }
-  }, [socket , chatUser]);
+  }, [socket, chatUser]);
 
   const handleSendMessage = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (chat.trim()) {
       socket.emit('chat message', {
         sender: chatUser.id,
@@ -115,6 +86,33 @@ export default function ChatConversation() {
         content: chat,
       });
       setChat('');
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      await sendImage(file);
+    }
+  };
+
+  const sendImage = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('sender', chatUser.id);
+    formData.append('recipient', recipient._id);
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/messages/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      setChats((prevChats) => [...prevChats, response.data]);
+    } catch (error) {
+      console.error('Error sending image:', error);
     }
   };
 
@@ -135,13 +133,13 @@ export default function ChatConversation() {
             <Avatar className="h-12 w-12">
               <AvatarFallback></AvatarFallback>
             </Avatar>
-            {chatUser.isOnline && (
+            {recipient.isActive && (
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
             )}
           </div>
           <div>
-            <h2 className="font-semibold text-lg">{chatUser.name}</h2>
-            <p className="text-sm text-muted-foreground">{chatUser.role}</p>
+            <h2 className="font-semibold text-lg">{recipient.name}</h2>
+            <p className="text-sm text-muted-foreground">{recipient.role}</p>
           </div>
         </div>
       </div>
@@ -161,7 +159,15 @@ export default function ChatConversation() {
                     : 'bg-gray-100'
                   }`}
               >
-                <p>{message.content}</p>
+                {message.type === 'image' ? (
+                  <img
+                    src={`http://localhost:3000/${message.content}`}
+                    alt="Sent image"
+                    className="max-w-full h-auto rounded-lg"
+                  />
+                ) : (
+                  <p>{message.content}</p>
+                )}
                 <p className="text-xs mt-1 opacity-70">
                   {new Date(message.timestamp).toLocaleTimeString([], {
                     hour: 'numeric',
@@ -179,7 +185,20 @@ export default function ChatConversation() {
       <>
         <form onSubmit={handleSendMessage} className="p-4 border-t">
           <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" size="icon" className="rounded-full">
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              ref={fileInputRef}
+              onChange={handleFileChange}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={() => fileInputRef.current.click()}
+            >
               <Camera className="h-6 w-6" />
             </Button>
             <Input
@@ -204,6 +223,5 @@ export default function ChatConversation() {
         </form>
       </>
     </div>
-  )
+  );
 }
-
