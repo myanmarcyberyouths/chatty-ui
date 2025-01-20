@@ -11,6 +11,7 @@ import StickerIcon from '@/icons/StickerIcon';
 import SendIcon from '@/icons/SendIcon';
 import { io } from 'socket.io-client';
 import axios from 'axios';
+import { isImageFile } from '@/lib/utils';
 
 const socket = io('http://localhost:3000');
 
@@ -158,11 +159,7 @@ export default function ChatConversation() {
         <div className="flex flex-col p-4 min-h-full">
         {chats.map((message, index) => {
             // Check if the content ends with an image file extension
-            const isImage = 
-              message.content.endsWith('.jpeg') ||
-              message.content.endsWith('.jpg') ||
-              message.content.endsWith('.png') ||
-              message.content.endsWith('.gif');
+            const isImage = isImageFile(message.content)
 
             return (
               <div
