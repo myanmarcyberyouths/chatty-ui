@@ -12,6 +12,7 @@ import SendIcon from '@/icons/SendIcon';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { isImageFile } from '@/lib/utils';
+import { StickerPicker } from '@/components/ui/sticker-picker';
 
 const socket = io('http://localhost:3000');
 
@@ -24,6 +25,7 @@ export default function ChatConversation() {
   const [chats, setChats] = useState([]);
   const [recipient, setRecipient] = useState({});
   const [isUploading, setIsUploading] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
   const scrollAreaRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -90,6 +92,7 @@ export default function ChatConversation() {
         sender: chatUser.id,
         recipient: recipient._id,
         content: chat,
+        type: 'text'
       });
       setChat('');
     }
@@ -126,6 +129,26 @@ export default function ChatConversation() {
     }
   };
 
+  const sendSticker = async (stickerUrl) => {
+
+    try {
+      const response = await axios.post("http://localhost:3000/api/v1/messages/sticker", {
+        sender: chatUser.id,
+        recipient: recipient._id,
+        content:stickerUrl,
+      }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+      });
+
+      setShowStickers(false); 
+      setChats((prevChats) => [...prevChats, response.data]);
+    } catch (error) {
+      console.error("Error sending sticker:", error);
+    }
+  };
+
   return (
     <div className={`flex flex-col h-screen max-w-md mx-auto bg-white`}>
       {/* Header */}
@@ -157,9 +180,10 @@ export default function ChatConversation() {
       {/* Messages */}
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="flex flex-col p-4 min-h-full">
-        {chats.map((message, index) => {
+          {chats.map((message, index) => {
             // Check if the content ends with an image file extension
             const isImage = isImageFile(message.content)
+            const isSticker = (message) => message.type === 'sticker';
 
             return (
               <div
@@ -169,7 +193,7 @@ export default function ChatConversation() {
               >
                 <div
                   className={`max-w-[70%] rounded-2xl px-4 py-2 ${message.sender === authUser._id
-                      ? 'bg-black text-white'
+                      ? `bg-${isImage ? 'transparent' : 'black'} text-white`
                       : 'bg-gray-100'
                     }`}
                 >
@@ -177,7 +201,7 @@ export default function ChatConversation() {
                     <img
                       src={`http://localhost:3000/${message.content}`}
                       alt="Sent image"
-                      className="max-w-full h-auto rounded-lg"
+                      className={`max-w-full h-auto rounded-lg ${message.type === 'sticker' ? 'w-20 h-20 object-contain bg-transparent' : ''}`}
                     />
                   ) : (
                     <p>{message.content}</p>
@@ -223,15 +247,25 @@ export default function ChatConversation() {
               placeholder="Message..."
               className="rounded-full"
             />
-            <Button type="button" variant="none" size="icon" className="rounded-full bg-none">
+            <Button 
+              type="button" 
+              variant="none" 
+              size="icon" 
+              className="rounded-full bg-none" 
+              onClick={() => setShowStickers(!showStickers)} >
               <StickerIcon
                 width="100"
                 height="100"
-                onClick={() => {
-                  stickerRef.current?.click();
-                }}
               />
             </Button>
+
+            {showStickers && (
+              <StickerPicker
+                onSelectSticker={sendSticker}
+                onClose={() => setShowStickers(false)}
+              />
+            )}
+
             <Button type="submit" size="icon" variant="none" className="rounded-full hover:bg-none">
               <SendIcon />
             </Button>
