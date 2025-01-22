@@ -15,12 +15,12 @@
 cd chatty-ui
 
 npm install
-# or
+or
 yarn install
 
 ### Running The Project
 
 npm start
-# or
+or
 yarn start
 
