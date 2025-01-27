@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 
+
 const StickerPicker = ({ onSelectSticker, onClose }) => {
 
   const stickerCategories= {
@@ -33,7 +34,7 @@ const StickerPicker = ({ onSelectSticker, onClose }) => {
                 {stickers.map((sticker, index) => (
                   <img
                     key={index}
-                    src={`http://localhost:3000/${sticker}`}
+                    src={`${sticker}`}
                     alt="sticker"
                     className="w-16 h-16 cursor-pointer hover:scale-110 transition-transform"
                     onClick={() => onSelectSticker(sticker)}

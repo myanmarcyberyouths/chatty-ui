@@ -14,7 +14,9 @@ import axios from 'axios';
 import { isImageFile } from '@/lib/utils';
 import { StickerPicker } from '@/components/ui/sticker-picker';
 
-const socket = io('http://localhost:3000');
+const SOCKET_URL = import.meta.env.SOCKET_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.BACKEND_URL || 'http://localhost:3000'
+const socket = io(`${SOCKET_URL}`);
 
 export default function ChatConversation() {
   const stickerRef = useRef(null);
@@ -28,7 +30,7 @@ export default function ChatConversation() {
   const [showStickers, setShowStickers] = useState(false);
   const scrollAreaRef = useRef(null);
   const bottomRef = useRef(null);
-
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
   const authUser = JSON.parse(localStorage.getItem('user'));
 
   const chatUser = {
@@ -43,7 +45,7 @@ export default function ChatConversation() {
       const fetchRecipient = async () => {
         try {
           const response = await axios.get(
-            `http://localhost:3000/api/v1/user/${recipientId}`,
+            `${API_BASE_URL}/user/${recipientId}`,
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -113,7 +115,7 @@ export default function ChatConversation() {
     formData.append('recipient', recipient._id);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/messages/image', formData, {
+      const response = await axios.post(`${API_BASE_URL}/messages/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -132,7 +134,7 @@ export default function ChatConversation() {
   const sendSticker = async (stickerUrl) => {
 
     try {
-      const response = await axios.post("http://localhost:3000/api/v1/messages/sticker", {
+      const response = await axios.post(`${API_BASE_URL}/messages/sticker`, {
         sender: chatUser.id,
         recipient: recipient._id,
         content:stickerUrl,
@@ -199,7 +201,7 @@ export default function ChatConversation() {
                 >
                   {isImage ? (
                     <img
-                      src={`http://localhost:3000/${message.content}`}
+                      src={`${BACKEND_URL}/${message.content}`}
                       alt="Sent image"
                       className={`max-w-full h-auto rounded-lg ${message.type === 'sticker' ? 'w-20 h-20 object-contain bg-transparent' : ''}`}
                     />
