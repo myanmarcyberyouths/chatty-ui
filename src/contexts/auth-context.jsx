@@ -3,8 +3,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1/auth';
-console.log(API_BASE_URL)
-console.log(import.meta.env)
 
 const AuthContext = createContext(undefined)
 
