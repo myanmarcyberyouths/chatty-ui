@@ -50,6 +50,8 @@ function Home() {
     user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1/auth'
+  const authUser = localStorage.getItem('user');
+  console.log(authUser)
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/active-users`)

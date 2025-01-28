@@ -48,20 +48,8 @@ function App() {
         >
           <Route index element={<Home />} />
           <Route path=':recipientId' element={<ChatConversation />} />
-          {/* <Route path="course" element={<Course />} />
-          <Route path="course/:courseId/module" element={<Module/>} />
-          <Route path="course/:courseId/module/:moduleId/activity" element={<Activity />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="courses" element={<Course />} />
-          <Route path="recent" element={<Course />} />
-          <Route path="my-courses" element={<Course />} />
-          <Route path="manage" element={<Manage />} />
-          <Route path="enrollment" element={<Enroll />} /> */}
-          {/* Redirect any unmatched routes to the dashboard */}
           <Route path="*" element={<NotFound />} />
         </Route>
-        {/* Catch all route */}
-        {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
       </Routes>
       </AuthProvider>
     </>
