@@ -29,7 +29,6 @@ export default function ChatConversation() {
   const [isUploading, setIsUploading] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
   const scrollAreaRef = useRef(null);
-  const bottomRef = useRef(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
   const authUser = JSON.parse(localStorage.getItem('user'));
 
@@ -61,14 +60,6 @@ export default function ChatConversation() {
       fetchRecipient();
     }
   }, [recipientId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chats]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chats]);
 
   useEffect(() => {
     if (socket && chatUser && recipient._id) {
@@ -215,7 +206,6 @@ export default function ChatConversation() {
               </div>
             );
           })}
-          <div ref={bottomRef} />
         </div>
       </ScrollArea>
 

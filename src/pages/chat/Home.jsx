@@ -2,53 +2,17 @@ import { useState , useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router";
 import { LogOutIcon } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import axios from "axios";
 
-const mockUsers = [
-  { id: "1", name: "Saw", role: "Admin", lastSeen: new Date(), isActive: true },
-  {
-    id: "2",
-    name: "Andrew",
-    role: "Student",
-    lastSeen: new Date(),
-    isActive: true,
-  },
-  {
-    id: "3",
-    name: "Lin",
-    role: "Student",
-    lastSeen: new Date(),
-    isActive: false,
-  },
-  {
-    id: "4",
-    name: "Aung",
-    role: "Admin",
-    lastSeen: new Date(),
-    isActive: false,
-  },
-  {
-    id: "5",
-    name: "Khant",
-    role: "Student",
-    lastSeen: new Date(),
-    isActive: true,
-  },
-];
-
 function Home() {
   const [users , setUsers] = useState([])
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("");
   const {logout} = useAuth()
-  const filteredUsers = mockUsers.filter((user) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1/auth'
   const authUser = JSON.parse(localStorage.getItem('user'));
 
@@ -60,8 +24,6 @@ function Home() {
       })
       .catch((error) => console.log(error))
   }, [])
-
-  const recentUsers = filteredUsers.filter((user) => user.isActive);
 
   const handleLogout = async () => {
     try {
@@ -94,11 +56,6 @@ function Home() {
 
       <ScrollArea className="flex-1">
         <div className="p-4">
-          <h2 className="text-xl font-bold text-blue-600 mb-4">Recent</h2>
-          {recentUsers.map((user) => (
-            <UserItem key={user.id} user={user} />
-          ))}
-
           <h2 className="text-xl font-bold text-blue-600 mt-6 mb-4">All</h2>
           {users.map((user) => (
             <UserItem 
@@ -106,7 +63,6 @@ function Home() {
                 user={user} 
                 onClick={() => navigate(`/chat/${user._id}`)} 
             />
-
           ))}
         </div>
       </ScrollArea>
