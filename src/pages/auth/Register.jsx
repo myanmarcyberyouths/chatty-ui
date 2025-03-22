@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router'
-// import { useAuth } from '../contexts/auth-context'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -17,8 +16,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { useAuth } from '@/contexts/auth-context'
  
 const formSchema = z.object({

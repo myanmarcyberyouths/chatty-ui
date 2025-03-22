@@ -15,26 +15,18 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 const socket = io(`${SOCKET_URL}`);
 
-export default function ChatConversation() {
+export default function GroupChat() {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
-  const { recipientId } = useParams();
+  const { groupId } = useParams();
   const [chat, setChat] = useState('');
   const [chats, setChats] = useState([]);
-  const [recipient, setRecipient] = useState({});
+  const [group, setGroup] = useState({});
   const [isUploading, setIsUploading] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
   const scrollAreaRef = useRef(null);
-  const wasAtBottomRef = useRef(true); // Track if user was at bottom before update
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
   const authUser = JSON.parse(localStorage.getItem('user'));
-
-  const chatUser = {
-    id: authUser._id,
-    name: authUser.name,
-    role: 'User',
-    isOnline: true,
-  };
 
   // Scroll to bottom function
   const scrollToBottom = () => {
@@ -46,101 +38,54 @@ export default function ChatConversation() {
     }
   };
 
-  // Check if user is near the bottom
-  const isNearBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-        // Consider "near bottom" if within 100px of the bottom
-        return scrollHeight - scrollTop - clientHeight < 100;
-      }
-    }
-    return true; // Default to true if we can't determine position
-  };
-
-  // Scroll handling
+  // Scroll to bottom on initial load and when chats change
   useEffect(() => {
-    // On initial load or when chats update, scroll to bottom only if user was at bottom
-    if (wasAtBottomRef.current) {
-      scrollToBottom();
-    }
-  }, [chats]);
+    scrollToBottom();
+  }, [chats]); // Trigger when `chats` changes
 
-  // Track scroll position before chats update
   useEffect(() => {
-    const handleScroll = () => {
-      wasAtBottomRef.current = isNearBottom();
-    };
-
-    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
+    if (groupId) {
+      axios.get(`${API_BASE_URL}/groups/details/${groupId}`)
+        .then((res) => {
+          setGroup(res.data.data.group);
+        })
+        .catch((error) => console.error("Error fetching group details:", error));
     }
+  }, [groupId]);
 
-    return () => {
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
-
-  // Fetch recipient details
   useEffect(() => {
-    if (recipientId) {
-      const fetchRecipient = async () => {
-        try {
-          const response = await axios.get(`${API_BASE_URL}/user/${recipientId}`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          });
-          setRecipient(response.data);
-        } catch (error) {
-          console.error('Error fetching recipient:', error);
-        }
-      };
-      fetchRecipient();
-    }
-  }, [recipientId]);
+    if (socket && groupId) {
+      socket.emit('join group', { groupId });
+      socket.emit('load group messages', { groupId });
 
-  // Socket setup for chat
-  useEffect(() => {
-    if (socket && chatUser && recipient._id) {
-      socket.emit('load messages', {
-        sender_id: chatUser.id,
-        recipient_id: recipient._id,
+      socket.on('group chat history', (messages) => {
+        console.log('Received group chat history:', messages);
+        setChats(messages); // Assuming messages are in chronological order
       });
 
-      socket.on('chat history', (messages) => {
-        console.log('Received chat history:', messages);
-        setChats(messages);
-      });
-
-      socket.on('chat message', (message) => {
-        console.log('Received new message:', message);
-        wasAtBottomRef.current = isNearBottom(); // Check if at bottom before adding message
+      socket.on('group message', (message) => {
+        console.log('Received new group message:', message);
         setChats((prevChats) => [...prevChats, message]);
       });
 
       return () => {
-        socket.off('chat history');
-        socket.off('chat message');
+        socket.emit('leave group', { groupId });
+        socket.off('group chat history');
+        socket.off('group message');
       };
     }
-  }, [socket, chatUser, recipient._id]);
+  }, [socket, groupId]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (chat.trim()) {
-      socket.emit('chat message', {
-        sender: chatUser.id,
-        recipient: recipient._id,
+      socket.emit('group message', {
+        sender: authUser._id,
+        groupId: groupId,
         content: chat,
         type: 'text',
       });
       setChat('');
-      wasAtBottomRef.current = true; // Force scroll to bottom after sending
     }
   };
 
@@ -155,21 +100,19 @@ export default function ChatConversation() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('image', file);
-    formData.append('sender', chatUser.id);
-    formData.append('recipient', recipient._id);
+    formData.append('sender', authUser._id);
+    formData.append('groupId', groupId);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/messages/image`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/groups/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      wasAtBottomRef.current = isNearBottom(); // Check if at bottom before adding
-      setChats((prevChats) => [...prevChats, response.data]);
+      setChats((prevChats) => [...prevChats, response.data.data]);
     } catch (error) {
       console.error('Error sending image:', error);
-      alert('Failed to send image. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -177,9 +120,9 @@ export default function ChatConversation() {
 
   const sendSticker = async (stickerUrl) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/messages/sticker`, {
-        sender: chatUser.id,
-        recipient: recipient._id,
+      const response = await axios.post(`${API_BASE_URL}/groups/sticker`, {
+        sender: authUser._id,
+        groupId: groupId,
         content: stickerUrl,
       }, {
         headers: {
@@ -187,10 +130,9 @@ export default function ChatConversation() {
         },
       });
       setShowStickers(false);
-      wasAtBottomRef.current = isNearBottom(); // Check if at bottom before adding
-      setChats((prevChats) => [...prevChats, response.data]);
+      setChats((prevChats) => [...prevChats, response.data.data]);
     } catch (error) {
-      console.error('Error sending sticker:', error);
+      console.error("Error sending sticker:", error);
     }
   };
 
@@ -207,14 +149,9 @@ export default function ChatConversation() {
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <div className="flex items-center gap-3">
-          <div className="relative">
-            {recipient.isOnline && (
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-            )}
-          </div>
           <div>
-            <h2 className="font-semibold text-lg">{recipient.name}</h2>
-            <p className="text-sm text-muted-foreground">{recipient.role}</p>
+            <h2 className="font-semibold text-lg">{group.name}</h2>
+            <p className="text-sm text-muted-foreground">{group.members?.length} members</p>
           </div>
         </div>
       </div>
@@ -223,7 +160,7 @@ export default function ChatConversation() {
       <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="flex flex-col p-4 min-h-full">
           {chats.map((message, index) => {
-            const isCurrentUser = message.sender === authUser._id;
+            const isCurrentUser = message.sender._id === authUser._id;
             const isImage = isImageFile(message.content);
             const isSticker = message.type === 'sticker';
 
@@ -235,10 +172,15 @@ export default function ChatConversation() {
                 <div
                   className={`max-w-[70%] rounded-2xl px-4 py-2 ${
                     isCurrentUser
-                      ? `bg-${isImage || isSticker ? 'transparent' : 'black'} text-white`
+                      ? `bg-${isImage || isSticker ? 'transparent' : 'black'} text-gray-100`
                       : 'bg-gray-100'
                   }`}
                 >
+                  {!isCurrentUser && (
+                    <p className="text-xs font-medium text-gray-600 mb-1">
+                      {message.sender.name}
+                    </p>
+                  )}
                   {isImage || isSticker ? (
                     <img
                       src={`${BACKEND_URL}/${message.content}`}
@@ -248,11 +190,11 @@ export default function ChatConversation() {
                   ) : (
                     <p>{message.content}</p>
                   )}
-                  <p className="text-xs mt-1 opacity-70">
+                  <p className="text-xs mt-1 text-gray-600">
                     {new Date(message.timestamp).toLocaleTimeString([], {
                       hour: 'numeric',
                       minute: '2-digit',
-                    })}
+                    })} • Sent by {isCurrentUser ? 'You' : message.sender.name}
                   </p>
                 </div>
               </div>
